@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5 import QtWidgets,QtGui
-from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QWidget,QApplication,QHBoxLayout,QPushButton,QVBoxLayout,QLabel,QLineEdit,QPushButton,QMessageBox,QComboBox
+from PyQt5 import QtGui
+from PyQt5.QtCore import QTimer
 import serial
 import serial.tools.list_ports
 from cv2 import cv2
@@ -19,7 +18,7 @@ global img_cv, point1, point2,g_rect,cut_img
 def get_window_jpg():  #获得Frame Buffer的图像
     global img_cv
     hwnd = win32gui.FindWindow('pygame', 'Frame Buffer')
-    screen = QtWidgets.QApplication.primaryScreen()
+    screen = QApplication.primaryScreen()
     img = screen.grabWindow(hwnd).toImage()
     #print(hwnd)
     img.save("screenshot.jpg")
@@ -156,9 +155,9 @@ class WindowClass(QWidget):  #创建一个windowclass类
         self.resize(250,300)  #窗口大小
         self.setWindowTitle("Openmv image analyse")  #窗口标题
          #label 对象
-        self.LabLAB1 = QtWidgets.QLabel()
-        self.LabLAB2 = QtWidgets.QLabel()
-        self.LabLAB3 = QtWidgets.QLabel()
+        self.LabLAB1 = QLabel()
+        self.LabLAB2 = QLabel()
+        self.LabLAB3 = QLabel()
         #lab 范围 label 的内容
         self.LabLAB1.setText("L:"+str(Lab_list[1])+"-"+str(Lab_list[0])+"  X:"+str(position_list[0]))
         self.LabLAB2.setText("A:"+str(Lab_list[3])+"-"+str(Lab_list[2])+"  Y:"+str(position_list[1]))
@@ -171,9 +170,9 @@ class WindowClass(QWidget):  #创建一个windowclass类
         self.LabLAB2.setFont(font)
         self.LabLAB3.setFont(font)
         #lab_set label lab值标签的内容
-        self.labLAB_set1 = QtWidgets.QLabel()
-        self.labLAB_set2 = QtWidgets.QLabel()
-        self.labLAB_set3 = QtWidgets.QLabel()
+        self.labLAB_set1 = QLabel()
+        self.labLAB_set2 = QLabel()
+        self.labLAB_set3 = QLabel()
         
         self.labLAB_set1.setText("L:")
         self.labLAB_set2.setText("A:")
@@ -189,9 +188,9 @@ class WindowClass(QWidget):  #创建一个windowclass类
         
 
         #lab值设定编辑框
-        self.L_set_edit = QtWidgets.QLineEdit()
-        self.A_set_edit = QtWidgets.QLineEdit()
-        self.B_set_edit = QtWidgets.QLineEdit()
+        self.L_set_edit = QLineEdit()
+        self.A_set_edit = QLineEdit()
+        self.B_set_edit = QLineEdit()
         
 
         self.L_set_edit.setText(str(Lab_list[1])+"-"+str(Lab_list[0]))
@@ -205,11 +204,11 @@ class WindowClass(QWidget):  #创建一个windowclass类
         self.B_set_edit.adjustSize()
 
         #xy_set lable
-        self.x_set_lab = QtWidgets.QLabel()
-        self.y_set_lab = QtWidgets.QLabel()
+        self.x_set_lab = QLabel()
+        self.y_set_lab = QLabel()
         #width height lable
-        self.width_set_lab = QtWidgets.QLabel()
-        self.height_set_lab = QtWidgets.QLabel()
+        self.width_set_lab = QLabel()
+        self.height_set_lab = QLabel()
         #xy_set label的内容
         self.x_set_lab.setText("X:")
         self.y_set_lab.setText("Y:")
@@ -219,38 +218,38 @@ class WindowClass(QWidget):  #创建一个windowclass类
         self.height_set_lab.setText("Height:")
         self.width_set_lab.setText("Width:")
 
-        self.X_set_edit = QtWidgets.QLineEdit()
-        self.Y_set_edit = QtWidgets.QLineEdit()
+        self.X_set_edit = QLineEdit()
+        self.Y_set_edit = QLineEdit()
 
         self.X_set_edit.setText(str(position_list[0]))
         self.Y_set_edit.setText(str(position_list[1]))
         #width,height edit
 
-        self.width_set_edit = QtWidgets.QLineEdit()
-        self.height_set_edit = QtWidgets.QLineEdit()
+        self.width_set_edit = QLineEdit()
+        self.height_set_edit = QLineEdit()
 
         self.width_set_edit.setText(str(position_list[2]))
         self.height_set_edit.setText(str(position_list[3]))
         ##################################################
         #盘符下拉框 ，盘符标签
 
-        self.device_lab = QtWidgets.QLabel()
+        self.device_lab = QLabel()
         self.device_lab.setText("请选择openmv的盘符:")
         self.device_lab.setFont(font)
         self.device_lab.setScaledContents(True)
-        self.device_combobox = QtWidgets.QComboBox()
+        self.device_combobox = QComboBox()
 
 
         ##################################################
 
 
         #com端口下拉框 , com标签，串口信息标签,检测按钮
-        self.s1_lable_com = QtWidgets.QLabel()
-        self.s1_box_1 =QtWidgets.QComboBox()
+        self.s1_lable_com = QLabel()
+        self.s1_box_1 =QComboBox()
         self.s1_lable_com.setText("COM:")
         self.s1_lable_com.setScaledContents(True)
       #  self.s1_lable_com.setFixedWidth(28)   #设定label宽度
-        self.com_state_lable = QtWidgets.QLabel()
+        self.com_state_lable = QLabel()
         self.com_state_lable.setText("当前串口为：无")
         self.com_state_lable.setFont(font)
         
@@ -261,14 +260,14 @@ class WindowClass(QWidget):  #创建一个windowclass类
 
         
         self.s1_lable_com.setFont(font)
-        self.s1_comcheck_btn1 = QtWidgets.QPushButton("检测串口") 
-        self.s1_comopen_btn2 = QtWidgets.QPushButton("打开串口")
-        self.s1_comclose_btn3 = QtWidgets.QPushButton("关闭串口")
-        self.s1_savedata_btn4 = QtWidgets.QPushButton("保存ROI和LAB阈值到openmv")
-        self.s1_comclear_btn5 = QtWidgets.QPushButton("清空ROI和LAB数据")
+        self.s1_comcheck_btn1 = QPushButton("检测串口") 
+        self.s1_comopen_btn2 = QPushButton("打开串口")
+        self.s1_comclose_btn3 = QPushButton("关闭串口")
+        self.s1_savedata_btn4 = QPushButton("保存ROI和LAB阈值到openmv")
+        self.s1_comclear_btn5 = QPushButton("清空ROI和LAB数据")
         self.s1_comclose_btn3.setEnabled(False)
-        self.s1_comdata_label = QtWidgets.QLabel("串口接收到的数据：")
-        self.s1_comdata_receive =QtWidgets.QLineEdit()
+        self.s1_comdata_label = QLabel("串口接收到的数据：")
+        self.s1_comdata_receive =QLineEdit()
      
         
 
@@ -648,16 +647,14 @@ class WindowClass(QWidget):  #创建一个windowclass类
             data = str(position_list[0])+","+str(position_list[1])+","+str(position_list[2])+","+str(position_list[3])
             data_txt.writelines('\n')
             data_txt.writelines(data)
+            
     def clear_roi_lab(self):
         global Lab_list,position_list
         for i in range(6):
             Lab_list[i] = 0
-         #   print(Lab_list[i])
         for i in range(4):
             position_list[i] = 0
-         #   print(position_list[i])
-      #  print("clear successful!")
-        #重置 lab 标签 、 lab 编辑框 等
+        #重置xylab标签和xylab编辑框
         self.LabLAB1.setText("L:"+str(Lab_list[1])+"-"+str(Lab_list[0])+"  X:"+str(position_list[0]))
         self.LabLAB2.setText("A:"+str(Lab_list[3])+"-"+str(Lab_list[2])+"  Y:"+str(position_list[1]))
         self.LabLAB3.setText("B:"+str(Lab_list[5])+"-"+str(Lab_list[4])+"  Width:"+str(position_list[2])+"  Height:"+str(position_list[3]))
