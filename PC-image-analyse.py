@@ -1,6 +1,8 @@
-from PyQt5.QtWidgets import QWidget,QApplication,QHBoxLayout,QPushButton,QVBoxLayout,QLabel,QLineEdit,QPushButton,QMessageBox,QComboBox
+from PyQt5.QtWidgets import QWidget,QApplication,QHBoxLayout,QPushButton,QVBoxLayout,QLabel,QLineEdit,QPushButton,QMessageBox,QComboBox,QGroupBox
 from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QImage,QPixmap
+from PyQt5.QtCore import QTimer,QRect
+from PyQt5.Qt import *
 import serial
 import serial.tools.list_ports
 from cv2 import cv2
@@ -11,9 +13,54 @@ from matplotlib import pyplot as plt
 import psutil
 import win32api
 import re
+import os
 Lab_list = [0,0,0,0,0,0]
 position_list = [0,0,0,0]  #[x,y,wide,height]
 global img_cv, point1, point2,g_rect,cut_img
+
+class cvLabel(QLabel):  #重载QLbael类
+    x0 = 0
+    y0 = 0
+    x1 = 0
+    y1 = 0
+    flag = False
+
+    def mousePressEvent(self,event):
+        self.flag = True
+        self.x0 = event.x()
+        self.y0 = event.y()
+    def mouseReleaseEvent(self,event):
+        self.flag = False
+        get_roi_jpg()
+        lab_data()
+    def mouseMoveEvent(self,event):
+        if self.flag:
+            self.x1 = event.x()
+            self.y1 = event.y()
+            self.update()
+           
+
+    def paintEvent(self, event):
+        global cut_img,position_list
+        super().paintEvent(event)
+        rect =QRect(self.x0, self.y0, abs(self.x1-self.x0), abs(self.y1-self.y0))
+        painter = QPainter(self)
+        painter.setPen(QPen(Qt.red,2,Qt.SolidLine))
+        painter.drawRect(rect)
+
+        pqscreen  = QGuiApplication.primaryScreen()
+        pixmap2 = pqscreen.grabWindow(self.winId(), self.x0, self.y0, abs(self.x1-self.x0), abs(self.y1-self.y0))
+        position_list[0]=self.x0
+        position_list[1]=self.y0
+        position_list[2]=self.x1-self.x0
+        position_list[3]=self.y1-self.y0
+        pixmap2.save('cut.jpg')
+        cut_img = cv2.imread('cut.jpg')
+   
+
+        
+
+
 
 def get_window_jpg():  #获得Frame Buffer的图像
     global img_cv
@@ -22,13 +69,33 @@ def get_window_jpg():  #获得Frame Buffer的图像
     img = screen.grabWindow(hwnd).toImage()
     #print(hwnd)
     img.save("screenshot.jpg")
+
     img_cv = cv2.imread("screenshot.jpg")
+
+    height,width,bytesPerComponent = img_cv.shape  #返回图像的行数，列数，色彩通道数
+    bytesPerLine = 3 * width
+    cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB, img_cv)
+    QImg = QImage(img_cv.data, width, height, bytesPerLine, QImage.Format_RGB888)  #导入
+    pixmap = QPixmap.fromImage(QImg)
+    win.shotshow.setPixmap(pixmap)
+
+def get_roi_jpg():  #获得ROI图像
+    if os.path.exists('cut.jpg'):
+        cut_img = cv2.imread('cut.jpg')
+        height,width,bytesPerComponent = cut_img.shape  #返回图像的行数，列数，色彩通道数
+        bytesPerLine = 3 * width
+        cv2.cvtColor(cut_img, cv2.COLOR_BGR2RGB, cut_img)
+        QImg2 = QImage(cut_img.data, width, height, bytesPerLine, QImage.Format_RGB888)  #导入
+        pixmap2 = QPixmap.fromImage(QImg2)
+        win.roishow.setPixmap(pixmap2)
+
 
 
     
 
 def lab_data():  #lab数据处理及范围输出
-    global Lab_list,cut_img
+    global Lab_list
+    cut_img = cv2.imread("cut.jpg")
 #    img=cv2.imread("screenshot.jpg",cv2.IMREAD_COLOR)
     img_lab = cv2.cvtColor(cut_img, cv2.COLOR_BGR2LAB)
     ############lab数据与直方图################
@@ -59,8 +126,9 @@ def RGB_hist_show():  #RGB直方图输出
     :return：NONE
     # 按R、G、B三个通道分别计算颜色直方图
     '''
-    global img_cv
-    img=img_cv
+
+    img = cv2.imread("cut.jpg")
+
     b_hist = cv2.calcHist([img], [0], None, [256], [0, 256])
     g_hist = cv2.calcHist([img], [1], None, [256], [0, 256])
     r_hist = cv2.calcHist([img], [2], None, [256], [0, 256])
@@ -74,47 +142,7 @@ def RGB_hist_show():  #RGB直方图输出
    # print(max(b_hist),min(b_hist),max(g_hist),min(g_hist),max(r_hist),min(r_hist))
     plt.show()
 
-def on_mouse(event, x, y, flags, param):
-    '''
-    鼠标画框，左键点击打点，左键拖拽画框
-    :param :event,x,y,flags,param
-    :return: NONE
-    '''
-    global img_cv, point1, point2,g_rect,cut_img,position_list
-    img2 = img_cv.copy()
-    if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
-     #   print("1-EVENT_LBUTTONDOWN")
-        point1 = (x, y)
-        cv2.circle(img2, point1, 10, (0, 255, 0), 5)
-        cv2.resizeWindow('image',640,480)
-        cv2.imshow('image', img2)
- 
-    elif event == cv2.EVENT_MOUSEMOVE and (flags & cv2.EVENT_FLAG_LBUTTON):  # 按住左键拖曳，画框
-     #   print("2-EVENT_FLAG_LBUTTON")
-        cv2.rectangle(img2, point1, (x, y), (255, 0, 0), thickness=2)
-        cv2.resizeWindow('image',640,480)
-        cv2.imshow('image', img2)
- 
-    elif event == cv2.EVENT_LBUTTONUP:  # 左键释放，显示
-     #   print("3-EVENT_LBUTTONUP")
-        point2 = (x, y)
-        cv2.rectangle(img2, point1, point2, (0, 0, 255), thickness=2)
-        cv2.resizeWindow('image',640,480)
-        cv2.imshow('image', img2)
-        if point1!=point2:
-            min_x = min(point1[0], point2[0])
-            min_y = min(point1[1], point2[1])
-            width = abs(point1[0] - point2[0])
-            height = abs(point1[1] - point2[1])
-            g_rect=[min_x,min_y,width,height]
-            position_list[0]=min_x
-            position_list[1]=min_y
-            position_list[2]=width
-            position_list[3]=height
-            cut_img = img_cv[min_y:min_y + height, min_x:min_x + width]
- #           cv2.imshow('ROI', cut_img)
-            lab_data()
-          #  print(Lab_list)   
+
 
 def get_image_roi(rgb_image):
     '''
@@ -146,6 +174,7 @@ def get_image_roi(rgb_image):
 class WindowClass(QWidget):  #创建一个windowclass类
     def __init__(self,parent=None):   #初始化
         super(WindowClass, self).__init__(parent)
+        global img_cv
         win_layout =QHBoxLayout() #整体布局
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.data_receive)
@@ -285,8 +314,47 @@ class WindowClass(QWidget):  #创建一个windowclass类
                                   "QPushButton{border-radius:10px}"
                                   "QPushButton{padding:2px 4px}")
         '''
-        #########左控件布局#########
-        lwg = QWidget() #左边的控件
+        ########左控件布局########
+        lwg = QWidget()  #左控件总容器
+
+        lgroupBox1 = QGroupBox("截取的图像")   #左控件控件框1,用法等同于QWidget
+        lgroupBox2 =QGroupBox("选定的ROI图像")  #左控件控件框2
+        hlayout1 = QHBoxLayout()
+        hlayout2 = QHBoxLayout()
+
+        self.shotshow = cvLabel(self)
+        self.roishow = cvLabel(self)
+        self.shotshow.setMaximumSize(300,400)
+        self.roishow.setMaximumSize(300,400)
+
+        self.shotshow.setCursor(Qt.CrossCursor)
+        
+
+        
+        hlayout1.addWidget(self.shotshow)
+        hlayout2.addWidget(self.roishow)
+
+
+        lgroupBox1.setLayout(hlayout1)
+        lgroupBox2.setLayout(hlayout2)
+
+        
+        lvlayout = QVBoxLayout()  #左控件总布局
+        lvlayout.addWidget(lgroupBox1)
+        lvlayout.addWidget(lgroupBox2)
+
+        lwg.setLayout(lvlayout)
+
+        win_layout.addWidget(lwg)
+
+
+
+
+
+
+
+        #########中控件布局#########
+        cwg = QWidget() #中间的控件
         vlayout=QVBoxLayout()  
         vlayout.addWidget(self.LabLAB1)
         vlayout.addWidget(self.LabLAB2)
@@ -294,9 +362,9 @@ class WindowClass(QWidget):  #创建一个windowclass类
         vlayout.addWidget(self.btn_1)
         vlayout.addWidget(self.btn_2)
         vlayout.addWidget(self.btn_3)
-        lwg.setLayout(vlayout)
+        cwg.setLayout(vlayout)
 
-        win_layout.addWidget(lwg)
+        win_layout.addWidget(cwg)
 
         #########右控件布局########
         rwg = QWidget() #右边的控件
@@ -455,7 +523,7 @@ class WindowClass(QWidget):  #创建一个windowclass类
          #   print("Btn_2被点击")
             get_window_jpg()
             cv2.resizeWindow('image',640,480)
-            get_image_roi(img_cv)
+         #   get_image_roi(img_cv)
             lab_data()
        
     
